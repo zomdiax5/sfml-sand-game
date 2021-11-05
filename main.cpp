@@ -2,13 +2,14 @@
 #include <iostream>
 #include <random>
 #include <thread>
+#include <vector>
 #define map_length_x 160
 #define map_length_y 90
 int map[map_length_x][map_length_y];
 int tmap[map_length_x][map_length_y];
 int selected_id = 1;
 sf::Color colors[3] = {sf::Color(0, 0, 0), sf::Color(255, 200, 0), sf::Color(50, 50, 255)};
-sf::RectangleShape pixel[map_length_x][map_length_y];
+sf::VertexArray pixel(sf::Quads, (map_length_x*map_length_y)*4);
 
 int random(int min, int max) //range : [min, max]
 {
@@ -109,9 +110,14 @@ void process(float start_x, float end_x, float start_y, float end_y)
         }
     }
 }
-
+std::vector<float> recent_fps;
 int main()
 {
+    sf::Clock clock;
+    for (int i = 0; i < 20; i++)
+    {
+        recent_fps.push_back(0);
+    }
     sf::RenderWindow window(sf::VideoMode(map_length_x, map_length_y), "Sand Game");
     //window.setVerticalSyncEnabled(false);
     window.setFramerateLimit(9999);
@@ -121,12 +127,13 @@ int main()
         {
             map[x][y] = 0;
             tmap[x][y] = 0;
-            pixel[x][y].setPosition(x, y);
-            pixel[x][y].setSize(sf::Vector2f(1, 1));
+            pixel[((x+(y*map_length_x))*4)-1].position=sf::Vector2f(x,y);
+            pixel[((x+(y*map_length_x))*4)-2].position=sf::Vector2f(x+1,y);
+            pixel[((x+(y*map_length_x))*4)-3].position=sf::Vector2f(x+1,y+1);
+            pixel[((x+(y*map_length_x))*4)-4].position=sf::Vector2f(x,y+1);
         }
     }
-    sf::Clock clock;
-    sf::Time last_time;
+    sf::Time main_start;
     while (window.isOpen())
     {
         sf::Event event;
@@ -136,6 +143,7 @@ int main()
                 window.close();
         }
         // Input
+        sf::Time t_input_start = clock.getElapsedTime();
         if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
         {
             int x = sf::Mouse::getPosition(window).x * (float(map_length_x) / float(window.getSize().x));
@@ -171,17 +179,24 @@ int main()
         {
             selected_id = 0;
         }
+        sf::Time t_input_end = clock.getElapsedTime();
         window.clear();
-        // Drawing
+        // Updating Colors
+        sf::Time t_color_start = clock.getElapsedTime();
         for (int x = 0; x < map_length_x; x++)
         {
             for (int y = 0; y < map_length_y; y++)
             {
                 map[x][y] = tmap[x][y];
-                pixel[x][y].setFillColor(colors[map[x][y]]);
-                window.draw(pixel[x][y]); //TODO: SLOW!!! Change to Texture!
+                pixel[((x+(y*map_length_x))*4)-1].color=colors[map[x][y]];
+                pixel[((x+(y*map_length_x))*4)-2].color=colors[map[x][y]];
+                pixel[((x+(y*map_length_x))*4)-3].color=colors[map[x][y]];
+                pixel[((x+(y*map_length_x))*4)-4].color=colors[map[x][y]];
             }
         }
+        sf::Time t_color_end = clock.getElapsedTime();
+        sf::Time t_draw_start = clock.getElapsedTime();
+        window.draw(pixel);
         std::thread thread1(process, 0.0, 1.0, 0.0, 0.5);
         std::thread thread2(process, 0.0, 1.0, 0.5, 1.0);
         thread1.join();
@@ -189,10 +204,18 @@ int main()
         //process(0.0, 1.0, 0.0, 1.0);
 
         window.display();
-        sf::Time currentTime = clock.getElapsedTime();
-        float fps = 1.0f / (currentTime.asSeconds() - last_time.asSeconds());
-        last_time = currentTime;
-        std::cout << "FPS: " << fps << std::endl;
+        sf::Time t_draw_end = clock.getElapsedTime();
+        sf::Time main_end = clock.getElapsedTime();
+        float fps = 1.0f / (main_end.asSeconds() - main_start.asSeconds());
+        recent_fps.push_back(fps);
+        recent_fps.erase(recent_fps.begin());
+        main_start = main_end;
+        float sum = 0.0;
+        for(auto value : recent_fps)
+        {
+            sum+=value;
+        }
+        std::cout << "FPS: " << sum/recent_fps.size() << std::endl;
     }
 
     return 0;
