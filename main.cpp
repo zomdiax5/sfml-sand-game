@@ -3,13 +3,15 @@
 #include <random>
 #include <thread>
 #include <vector>
-#define map_length_x 160
-#define map_length_y 90
+#include <string>
+#include "profiler.h"
+#define map_length_x 160 * 3
+#define map_length_y 90 * 3
 int map[map_length_x][map_length_y];
 int tmap[map_length_x][map_length_y];
 int selected_id = 1;
 sf::Color colors[3] = {sf::Color(0, 0, 0), sf::Color(255, 200, 0), sf::Color(50, 50, 255)};
-sf::VertexArray pixel(sf::Quads, (map_length_x*map_length_y)*4);
+sf::VertexArray pixel(sf::Quads, (map_length_x * map_length_y) * 4);
 
 int random(int min, int max) //range : [min, max]
 {
@@ -29,7 +31,7 @@ void process(float start_x, float end_x, float start_y, float end_y)
         {
             //tmap[x][y] = map[x][y];
             int right = x + 1;
-            if (right > map_length_x-1)
+            if (right > map_length_x - 1)
             {
                 right = map_length_x - 2;
             }
@@ -84,7 +86,7 @@ void process(float start_x, float end_x, float start_y, float end_y)
                     tmap[x][down] = 2;
                     tmap[x][y] = temp;
                 }
-                if (map[x][down]!=0)
+                if (map[x][down] != 0)
                 {
                     if (random(0, 1))
                     {
@@ -105,14 +107,21 @@ void process(float start_x, float end_x, float start_y, float end_y)
                         }
                     }
                 }
-                
             }
         }
     }
 }
 std::vector<float> recent_fps;
+float fps = 0.0;
 int main()
 {
+    sf::Time main_start;
+    Profiler prof;
+    prof.add_profile("input");      //0
+    prof.add_profile("color");      //1
+    prof.add_profile("draw");       //2
+    prof.add_profile("processing"); //3
+    prof.add_profile("total");      //4
     sf::Clock clock;
     for (int i = 0; i < 20; i++)
     {
@@ -127,15 +136,15 @@ int main()
         {
             map[x][y] = 0;
             tmap[x][y] = 0;
-            pixel[((x+(y*map_length_x))*4)-1].position=sf::Vector2f(x,y);
-            pixel[((x+(y*map_length_x))*4)-2].position=sf::Vector2f(x+1,y);
-            pixel[((x+(y*map_length_x))*4)-3].position=sf::Vector2f(x+1,y+1);
-            pixel[((x+(y*map_length_x))*4)-4].position=sf::Vector2f(x,y+1);
+            pixel[((x + (y * map_length_x)) * 4) - 1].position = sf::Vector2f(x, y);
+            pixel[((x + (y * map_length_x)) * 4) - 2].position = sf::Vector2f(x + 1, y);
+            pixel[((x + (y * map_length_x)) * 4) - 3].position = sf::Vector2f(x + 1, y + 1);
+            pixel[((x + (y * map_length_x)) * 4) - 4].position = sf::Vector2f(x, y + 1);
         }
     }
-    sf::Time main_start;
     while (window.isOpen())
     {
+        prof.start_profiling(4);
         sf::Event event;
         while (window.pollEvent(event))
         {
@@ -143,7 +152,7 @@ int main()
                 window.close();
         }
         // Input
-        sf::Time t_input_start = clock.getElapsedTime();
+        prof.start_profiling(0);
         if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
         {
             int x = sf::Mouse::getPosition(window).x * (float(map_length_x) / float(window.getSize().x));
@@ -179,43 +188,61 @@ int main()
         {
             selected_id = 0;
         }
-        sf::Time t_input_end = clock.getElapsedTime();
+        prof.end_profiling(0);
         window.clear();
         // Updating Colors
-        sf::Time t_color_start = clock.getElapsedTime();
+        prof.start_profiling(1);
         for (int x = 0; x < map_length_x; x++)
         {
             for (int y = 0; y < map_length_y; y++)
             {
-                map[x][y] = tmap[x][y];
-                pixel[((x+(y*map_length_x))*4)-1].color=colors[map[x][y]];
-                pixel[((x+(y*map_length_x))*4)-2].color=colors[map[x][y]];
-                pixel[((x+(y*map_length_x))*4)-3].color=colors[map[x][y]];
-                pixel[((x+(y*map_length_x))*4)-4].color=colors[map[x][y]];
+                pixel[((x + (y * map_length_x)) * 4) - 1].color = colors[map[x][y]];
+                pixel[((x + (y * map_length_x)) * 4) - 2].color = colors[map[x][y]];
+                pixel[((x + (y * map_length_x)) * 4) - 3].color = colors[map[x][y]];
+                pixel[((x + (y * map_length_x)) * 4) - 4].color = colors[map[x][y]];
             }
         }
-        sf::Time t_color_end = clock.getElapsedTime();
-        sf::Time t_draw_start = clock.getElapsedTime();
+        prof.end_profiling(1);
+        prof.start_profiling(2);
         window.draw(pixel);
-        std::thread thread1(process, 0.0, 1.0, 0.0, 0.5);
-        std::thread thread2(process, 0.0, 1.0, 0.5, 1.0);
-        thread1.join();
-        thread2.join();
+        prof.start_profiling(3);
+        int lost_fps = 60 / int(fps + 1);
+        if(lost_fps>5){lost_fps=5;}
+        if(lost_fps<1){lost_fps=1;}
+        std::cout << lost_fps << std::endl;
+
+        for (int i = 0; i < lost_fps; i++)
+        {
+            std::thread thread1(process, 0.0, 1.0, 0.0, 0.5);
+            std::thread thread2(process, 0.0, 1.0, 0.5, 1.0);
+            thread1.join();
+            thread2.join();
+            for (int x = 0; x < map_length_x; x++)
+            {
+                for (int y = 0; y < map_length_y; y++)
+                {
+                    map[x][y] = tmap[x][y];
+                }
+            }
+        }
+        prof.end_profiling(3);
         //process(0.0, 1.0, 0.0, 1.0);
 
         window.display();
-        sf::Time t_draw_end = clock.getElapsedTime();
+        prof.end_profiling(2);
         sf::Time main_end = clock.getElapsedTime();
-        float fps = 1.0f / (main_end.asSeconds() - main_start.asSeconds());
+        fps = 1.0f / (main_end.asSeconds() - main_start.asSeconds());
         recent_fps.push_back(fps);
         recent_fps.erase(recent_fps.begin());
         main_start = main_end;
         float sum = 0.0;
-        for(auto value : recent_fps)
+        for (auto value : recent_fps)
         {
-            sum+=value;
+            sum += value;
         }
-        std::cout << "FPS: " << sum/recent_fps.size() << std::endl;
+        std::cout << "FPS: " << sum / recent_fps.size() << std::endl;
+        prof.end_profiling(4);
+        prof.show_results();
     }
 
     return 0;
