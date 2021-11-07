@@ -39,6 +39,8 @@
         "chrono": "cpp",
         "ratio": "cpp",
         "memory": "cpp",
-        "thread": "cpp"
-    }
+        "thread": "cpp",
+        "string": "cpp"
+    },
+    "C_Cpp.errorSquiggles": "Enabled"
 }
