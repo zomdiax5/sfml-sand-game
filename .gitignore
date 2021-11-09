@@ -38,3 +38,5 @@ SFML/
 .vscode/
 .x86_64
 *.x86_64
+*.depends
+*.layout
