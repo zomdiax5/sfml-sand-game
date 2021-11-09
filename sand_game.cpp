@@ -1,11 +1,11 @@
 #include "sand_game.h"
 
-int SandGame::random(int mininum, int maximum) //range : [min, max]
+int SandGame::random(int mininum, int maximum)
 {
     static bool first = true;
     if (first)
     {
-        srand(time(NULL)); //seeding for the first time only!
+        srand(time(NULL));
         first = false;
     }
     return mininum + rand() % ((maximum + 1) - mininum);
@@ -24,7 +24,7 @@ SandGame::SandGame()
 SandGame::~SandGame()
 {
 }
-void SandGame::run(bool limit_fps)
+void SandGame::run(bool limit_fps, bool profiling)
 {
     setvbuf(stdout, NULL, _IONBF, 0);
     for (int i = 0; i < 20; i++)
@@ -32,7 +32,6 @@ void SandGame::run(bool limit_fps)
         recent_fps.push_back(0);
     }
     sf::RenderWindow window(sf::VideoMode(map_length_x, map_length_y), "Sand Game");
-    //window.setVerticalSyncEnabled(false);
     for (int x = 1; x < map_length_x; x++)
     {
         for (int y = 1; y < map_length_y; y++)
@@ -55,20 +54,24 @@ void SandGame::run(bool limit_fps)
                 window.close();
 
             if (event.type == sf::Event::KeyPressed)
-        {
-            if (event.key.code == sf::Keyboard::F)
             {
-                limit_fps=!limit_fps;
-                if (limit_fps)
+                if (event.key.code == sf::Keyboard::F)
                 {
-                    window.setFramerateLimit(60);
+                    limit_fps = !limit_fps;
+                    if (limit_fps)
+                    {
+                        window.setFramerateLimit(60);
+                    }
+                    else
+                    {
+                        window.setFramerateLimit(999999);
+                    }
                 }
-                else
+                else if (event.key.code == sf::Keyboard::P)
                 {
-                    window.setFramerateLimit(999999);
+                    profiling = !profiling;
                 }
             }
-        }
         }
         // Input
         prof.start_profiling(0);
@@ -131,15 +134,18 @@ void SandGame::run(bool limit_fps)
         {
             lost_fps = 1;
         }
-        //std::cout << lost_fps << std::endl;
 
         for (int i = 0; i < lost_fps; i++)
         {
+            // Uncomment these four lines and comment out the `process(0, 1, 0, 1);` under them to make the game run on two cores, it was disabled due to working
+            // weirdly when testing on windows. It seems to work fine for me (Linux Mint)
+            //
             //std::thread thread1(&SandGame::process, this, 0.0, 1.0, 0.0, 0.5);
             //std::thread thread2(&SandGame::process, this, 0.0, 1.0, 0.5, 1.0);
             //thread1.join();
             //thread2.join();
-            process(0,1,0,1);
+            process(0, 1, 0, 1); /*If, somehow, the game lags due to the graphics and not the simulating, then we can try to
+            simulate twice on the same frame to prevent the game from slowing down */
             // Updating Colors
             prof.start_profiling(1);
             for (int x = 1; x < map_length_x; x++)
@@ -162,7 +168,6 @@ void SandGame::run(bool limit_fps)
             }
         }
         prof.end_profiling(3);
-        //process(0.0, 1.0, 0.0, 1.0);
         sf::Time main_end = clock.getElapsedTime();
         fps = 1.0f / (main_end.asSeconds() - main_start.asSeconds());
         recent_fps.push_back(fps);
@@ -173,9 +178,12 @@ void SandGame::run(bool limit_fps)
         {
             sum += value;
         }
-        //std::cout << "FPS: " << sum / recent_fps.size() << std::endl;
         prof.end_profiling(4);
-        //prof.show_results();
+        if (profiling)
+        {
+            std::cout << "FPS: " << sum / recent_fps.size() << std::endl;
+            prof.show_results();
+        }
     }
 }
 

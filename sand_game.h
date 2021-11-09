@@ -6,7 +6,7 @@
 #include <vector>
 #include <string>
 #include "profiler/profiler.h"
-#define dmap_length_x 160 * 1
+#define dmap_length_x 160 * 1 //mutliply both of these numbers to make the resolution higher (but also makes the game lag more)
 #define dmap_length_y 90 * 1
 class SandGame
 {
@@ -27,7 +27,7 @@ private:
     sf::Clock clock;
     sf::Time main_start;
 public:
-    SandGame(/* args */);
+    SandGame();
     ~SandGame();
-    void run(bool limit_fps);
+    void run(bool limit_fps, bool profiling);
 };
