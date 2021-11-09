@@ -30,3 +30,9 @@
 *.exe
 *.out
 *.app
+
+#Codeblocks Files
+bin/
+obj/
+SFML/
+.vscode/

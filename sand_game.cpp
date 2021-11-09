@@ -1,6 +1,6 @@
 #include "sand_game.h"
 
-int SandGame::random(int min, int max) //range : [min, max]
+int SandGame::random(int mininum, int maximum) //range : [min, max]
 {
     static bool first = true;
     if (first)
@@ -8,7 +8,7 @@ int SandGame::random(int min, int max) //range : [min, max]
         srand(time(NULL)); //seeding for the first time only!
         first = false;
     }
-    return min + rand() % ((max + 1) - min);
+    return mininum + rand() % ((maximum + 1) - mininum);
 }
 
 SandGame::SandGame()
@@ -26,23 +26,16 @@ SandGame::~SandGame()
 }
 void SandGame::run(bool limit_fps)
 {
+    setvbuf(stdout, NULL, _IONBF, 0);
     for (int i = 0; i < 20; i++)
     {
         recent_fps.push_back(0);
     }
     sf::RenderWindow window(sf::VideoMode(map_length_x, map_length_y), "Sand Game");
     //window.setVerticalSyncEnabled(false);
-    if (limit_fps)
+    for (int x = 1; x < map_length_x; x++)
     {
-        window.setFramerateLimit(60);
-    }
-    else
-    {
-        window.setFramerateLimit(999999);
-    }
-    for (int x = 0; x < map_length_x; x++)
-    {
-        for (int y = 0; y < map_length_y; y++)
+        for (int y = 1; y < map_length_y; y++)
         {
             map[x][y] = 0;
             tmap[x][y] = 0;
@@ -54,12 +47,28 @@ void SandGame::run(bool limit_fps)
     }
     while (window.isOpen())
     {
-        prof.start_profiling(4);
         sf::Event event;
+        prof.start_profiling(4);
         while (window.pollEvent(event))
         {
             if (event.type == sf::Event::Closed)
                 window.close();
+
+            if (event.type == sf::Event::KeyPressed)
+        {
+            if (event.key.code == sf::Keyboard::F)
+            {
+                limit_fps=!limit_fps;
+                if (limit_fps)
+                {
+                    window.setFramerateLimit(60);
+                }
+                else
+                {
+                    window.setFramerateLimit(999999);
+                }
+            }
+        }
         }
         // Input
         prof.start_profiling(0);
@@ -122,19 +131,20 @@ void SandGame::run(bool limit_fps)
         {
             lost_fps = 1;
         }
-        std::cout << lost_fps << std::endl;
+        //std::cout << lost_fps << std::endl;
 
         for (int i = 0; i < lost_fps; i++)
         {
-            std::thread thread1(&SandGame::process, this, 0.0, 1.0, 0.0, 0.5);
-            std::thread thread2(&SandGame::process, this, 0.0, 1.0, 0.5, 1.0);
-            thread1.join();
-            thread2.join();
+            //std::thread thread1(&SandGame::process, this, 0.0, 1.0, 0.0, 0.5);
+            //std::thread thread2(&SandGame::process, this, 0.0, 1.0, 0.5, 1.0);
+            //thread1.join();
+            //thread2.join();
+            process(0,1,0,1);
             // Updating Colors
             prof.start_profiling(1);
-            for (int x = 0; x < map_length_x; x++)
+            for (int x = 1; x < map_length_x; x++)
             {
-                for (int y = 0; y < map_length_y; y++)
+                for (int y = 1; y < map_length_y; y++)
                 {
                     pixel[((x + (y * map_length_x)) * 4) - 1].color = colors[map[x][y]];
                     pixel[((x + (y * map_length_x)) * 4) - 2].color = colors[map[x][y]];
@@ -163,9 +173,9 @@ void SandGame::run(bool limit_fps)
         {
             sum += value;
         }
-        std::cout << "FPS: " << sum / recent_fps.size() << std::endl;
+        //std::cout << "FPS: " << sum / recent_fps.size() << std::endl;
         prof.end_profiling(4);
-        prof.show_results();
+        //prof.show_results();
     }
 }
 

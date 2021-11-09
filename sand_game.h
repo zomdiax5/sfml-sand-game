@@ -11,8 +11,8 @@
 class SandGame
 {
 private:
-    int map_length_x = 160;
-    int map_length_y = 90;
+    int map_length_x = dmap_length_x;
+    int map_length_y = dmap_length_y;
     int map[dmap_length_x][dmap_length_y];
     int tmap[dmap_length_x][dmap_length_y];
     int changed[dmap_length_x][dmap_length_y];
