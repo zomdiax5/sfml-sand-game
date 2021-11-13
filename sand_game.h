@@ -1,3 +1,6 @@
+#ifndef SAND_GAME_HEADER
+#define SAND_GAME_HEADER
+
 #include <SFML/Graphics.hpp>
 #include <SFML/Window.hpp>
 #include <iostream>
@@ -31,3 +34,4 @@ public:
     ~SandGame();
     void run(bool limit_fps, bool profiling);
 };
+#endif
